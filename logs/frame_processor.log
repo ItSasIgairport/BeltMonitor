@@ -1,0 +1,141 @@
+[2025-11-27 11:43:40] INFO [main.py:222] - 🚦 Frame kuyruğu işleyici başlatıldı.
+[2025-11-27 11:43:40] ERROR [main.py:481] - 172.21.13.178 - FFmpeg ile bağlantı hatası
+Traceback (most recent call last):
+  File "C:\Users\recep.takak\Desktop\yoloProject\main.py", line 466, in camera_worker_ffmpeg
+    process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1538, in _execute_child
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [WinError 2] The system cannot find the file specified
+[2025-11-27 11:43:40] ERROR [main.py:481] - 172.21.13.177 - FFmpeg ile bağlantı hatası
+Traceback (most recent call last):
+  File "C:\Users\recep.takak\Desktop\yoloProject\main.py", line 466, in camera_worker_ffmpeg
+    process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1538, in _execute_child
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [WinError 2] The system cannot find the file specified
+[2025-11-27 11:43:40] ERROR [main.py:481] - 172.21.13.179 - FFmpeg ile bağlantı hatası
+Traceback (most recent call last):
+  File "C:\Users\recep.takak\Desktop\yoloProject\main.py", line 466, in camera_worker_ffmpeg
+    process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1538, in _execute_child
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [WinError 2] The system cannot find the file specified
+[2025-11-27 11:43:40] ERROR [main.py:481] - 172.21.13.180 - FFmpeg ile bağlantı hatası
+Traceback (most recent call last):
+  File "C:\Users\recep.takak\Desktop\yoloProject\main.py", line 466, in camera_worker_ffmpeg
+    process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1538, in _execute_child
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [WinError 2] The system cannot find the file specified
+[2025-11-27 11:43:40] ERROR [main.py:481] - 172.21.13.182 - FFmpeg ile bağlantı hatası
+Traceback (most recent call last):
+  File "C:\Users\recep.takak\Desktop\yoloProject\main.py", line 466, in camera_worker_ffmpeg
+    process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1538, in _execute_child
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [WinError 2] The system cannot find the file specified
+[2025-11-27 11:43:40] ERROR [main.py:481] - 172.21.13.183 - FFmpeg ile bağlantı hatası
+Traceback (most recent call last):
+  File "C:\Users\recep.takak\Desktop\yoloProject\main.py", line 466, in camera_worker_ffmpeg
+    process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1538, in _execute_child
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [WinError 2] The system cannot find the file specified
+[2025-11-27 11:43:40] ERROR [main.py:481] - 172.21.13.181 - FFmpeg ile bağlantı hatası
+Traceback (most recent call last):
+  File "C:\Users\recep.takak\Desktop\yoloProject\main.py", line 466, in camera_worker_ffmpeg
+    process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1538, in _execute_child
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [WinError 2] The system cannot find the file specified
+[2025-11-27 11:43:40] INFO [main.py:575] - 📹 Segment kaydedici başlatıldı.
+[2025-11-27 11:43:40] INFO [recorder.py:53] - Segment record_segment_from_frames started
+[2025-11-27 11:43:40] ERROR [main.py:481] - 172.21.13.185 - FFmpeg ile bağlantı hatası
+Traceback (most recent call last):
+  File "C:\Users\recep.takak\Desktop\yoloProject\main.py", line 466, in camera_worker_ffmpeg
+    process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1538, in _execute_child
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [WinError 2] The system cannot find the file specified
+[2025-11-27 11:43:40] ERROR [main.py:481] - 172.21.13.184 - FFmpeg ile bağlantı hatası
+Traceback (most recent call last):
+  File "C:\Users\recep.takak\Desktop\yoloProject\main.py", line 466, in camera_worker_ffmpeg
+    process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1538, in _execute_child
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [WinError 2] The system cannot find the file specified
+[2025-11-27 11:43:40] ERROR [main.py:481] - 172.21.13.176 - FFmpeg ile bağlantı hatası
+Traceback (most recent call last):
+  File "C:\Users\recep.takak\Desktop\yoloProject\main.py", line 466, in camera_worker_ffmpeg
+    process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "C:\Users\recep.takak\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\subprocess.py", line 1538, in _execute_child
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [WinError 2] The system cannot find the file specified
+[2025-11-27 11:43:40] INFO [main.py:579] - 🖥️ UI thread başlatıldı.
+[2025-11-27 11:43:40] INFO [main.py:225] - 🖥️ PyTorch cihazı: cpu - Intel64 Family 6 Model 154 Stepping 4, GenuineIntel
+[2025-11-27 14:35:08] ERROR [main.py:23] - 10.60.170.216 - Kameraya bağlanılamadı.
+[2025-11-27 15:06:12] ERROR [main.py:31] - 10.60.170.217 - Kameraya bağlanılamadı.
+[2025-11-27 16:17:54] INFO [main.py:211] - Recording STARTED
+[2025-11-27 16:17:54] INFO [main.py:48] - Started recording for 10.60.170.215: recordings/cam_10_60_170_215_1764249474.avi
+[2025-11-27 16:17:54] INFO [main.py:48] - Started recording for 10.60.170.216: recordings/cam_10_60_170_216_1764249474.avi
+[2025-11-27 16:18:02] INFO [main.py:211] - Recording STOPPED
+[2025-11-27 16:18:02] INFO [main.py:62] - Stopped recording for 10.60.170.216
+[2025-11-27 16:18:02] INFO [main.py:62] - Stopped recording for 10.60.170.215
+[2025-11-27 16:19:33] INFO [main.py:211] - Recording STARTED
+[2025-11-27 16:19:33] INFO [main.py:48] - Started recording for 10.60.170.215: recordings/cam_10_60_170_215_1764249573.avi
+[2025-11-27 16:19:33] INFO [main.py:48] - Started recording for 10.60.170.216: recordings/cam_10_60_170_216_1764249573.avi
+[2025-11-27 16:19:36] INFO [main.py:211] - Recording STOPPED
+[2025-11-27 16:19:38] INFO [main.py:62] - Stopped recording for 10.60.170.215
+[2025-11-27 16:19:38] INFO [main.py:62] - Stopped recording for 10.60.170.216
+[2025-11-27 16:20:08] INFO [main.py:211] - Recording STARTED
+[2025-11-27 16:20:09] INFO [main.py:48] - Started recording for 10.60.170.215: recordings/cam_10_60_170_215_1764249609.avi
+[2025-11-27 16:20:09] INFO [main.py:48] - Started recording for 10.60.170.216: recordings/cam_10_60_170_216_1764249609.avi
+[2025-11-27 16:20:12] INFO [main.py:211] - Recording STOPPED
+[2025-11-27 16:20:12] INFO [main.py:62] - Stopped recording for 10.60.170.215
+[2025-11-27 16:20:12] INFO [main.py:62] - Stopped recording for 10.60.170.216
+[2025-11-27 16:22:30] INFO [main.py:223] - Recording STARTED. Saving to recordings\session_20251127_162230
+[2025-11-27 16:22:30] INFO [main.py:56] - Started recording for 10.60.170.216: recordings\session_20251127_162230\cam_10_60_170_216.avi
+[2025-11-27 16:22:30] INFO [main.py:56] - Started recording for 10.60.170.215: recordings\session_20251127_162230\cam_10_60_170_215.avi
+[2025-11-27 16:22:46] INFO [main.py:225] - Recording STOPPED
+[2025-11-27 16:22:46] INFO [main.py:70] - Stopped recording for 10.60.170.215
+[2025-11-27 16:22:46] INFO [main.py:70] - Stopped recording for 10.60.170.216
