@@ -8,3 +8,7 @@ wheels/
 
 # Virtual environments
 .venv
+alarm_manager.py
+models/*
+recordings/*
+logs/*

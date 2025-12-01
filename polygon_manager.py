@@ -9,9 +9,9 @@ logger = logging.getLogger(__name__)
 class PolygonManager:
     def __init__(self, filepath="polygons.json"):
         self.filepath = filepath
-        self.polygons = {}  # { ip: { "points": [[x,y], ...], "resolution": [w, h] } }
+        self.polygons = {}  # { ip: { "belt": {...}, "mask": {...} } }
         self.lock = threading.Lock()
-        self.mouse_pos = (0, 0)
+        self.edit_mode = 'belt' # 'belt' or 'mask'
         
         # Drawing state
         self.drawing_state = {
@@ -21,10 +21,16 @@ class PolygonManager:
             'window_name': None,
             'frame_shape': None, # (h, w) - ORIGINAL resolution
             'window_initialized': False,
-            'scale_factor': 1.0 # scale = displayed / original
+            'scale_factor': 1.0, # scale = displayed / original
+            'type': 'belt'
         }
         
         self.load()
+
+    def set_mode(self, mode):
+        if mode in ['belt', 'mask']:
+            self.edit_mode = mode
+            logger.info(f"Polygon edit mode set to: {mode}")
 
     def load(self):
         with self.lock:
@@ -32,8 +38,19 @@ class PolygonManager:
                 try:
                     with open(self.filepath, 'r') as f:
                         data = json.load(f)
-                        # Validate structure lightly if needed
-                        self.polygons = data
+                        # Migration check: if keys are missing "belt"/"mask" and have "points" directly
+                        migrated = {}
+                        for ip, val in data.items():
+                            if "points" in val:
+                                # Legacy format, assume it is 'belt'
+                                migrated[ip] = {
+                                    "belt": val,
+                                    "mask": None
+                                }
+                            else:
+                                migrated[ip] = val
+                        
+                        self.polygons = migrated
                         logger.info(f"Loaded polygons from {self.filepath}")
                 except Exception as e:
                     logger.error(f"Failed to load polygons: {e}")
@@ -50,31 +67,37 @@ class PolygonManager:
             except Exception as e:
                 logger.error(f"Failed to save polygons: {e}")
 
-    def save_polygon(self, ip, points, resolution):
+    def save_polygon(self, ip, points, resolution, poly_type="belt"):
         """
-        Save a polygon for a specific IP.
+        Save a polygon for a specific IP and type.
         points: List of (x, y) tuples or lists.
         resolution: tuple or list (width, height) of the source frame.
+        poly_type: 'belt' or 'mask'
         """
         with self.lock:
-            self.polygons[ip] = {
+            if ip not in self.polygons:
+                self.polygons[ip] = {}
+            
+            self.polygons[ip][poly_type] = {
                 "points": points,
                 "resolution": resolution
             }
         self.save()
 
-    def get_polygon(self, ip):
+    def get_polygon(self, ip, poly_type="belt"):
         """
-        Returns the polygon dict for an IP or None.
+        Returns the polygon dict for an IP and type or None.
         return: { "points": [...], "resolution": [...] }
         """
         with self.lock:
-            return self.polygons.get(ip)
-
-    def delete_polygon(self, ip):
-        with self.lock:
             if ip in self.polygons:
-                del self.polygons[ip]
+                return self.polygons[ip].get(poly_type)
+            return None
+
+    def delete_polygon(self, ip, poly_type="belt"):
+        with self.lock:
+            if ip in self.polygons and poly_type in self.polygons[ip]:
+                del self.polygons[ip][poly_type]
                 self.save()
 
     def mouse_callback_main(self, event, x, y, flags, param):
@@ -82,8 +105,6 @@ class PolygonManager:
         Callback for the main grid window.
         param: grid_layout dictionary containing 'cols', 'rows', 'cell_w', 'cell_h', 'sorted_ips', 'enabled'
         """
-        if event == cv2.EVENT_MOUSEMOVE:
-            self.mouse_pos = (x, y)
 
         if not param.get('enabled', True):
             return
@@ -107,10 +128,21 @@ class PolygonManager:
                 self.drawing_state['active'] = True
                 self.drawing_state['ip'] = ip
                 self.drawing_state['points'] = []
-                self.drawing_state['window_name'] = f"Edit Polygon - {ip}"
+                self.drawing_state['type'] = self.edit_mode
+                self.drawing_state['window_name'] = f"Edit {self.edit_mode.upper()} - {ip}"
                 self.drawing_state['window_initialized'] = False
                 self.drawing_state['scale_factor'] = 1.0 # Reset scale factor
-                logger.info(f"Started drawing for {ip}")
+                logger.info(f"Started drawing {self.edit_mode} for {ip}")
+
+    def cancel_drawing(self):
+        """
+        Cancels the current drawing operation.
+        """
+        if self.drawing_state['active']:
+            self.drawing_state['active'] = False
+            if self.drawing_state['window_name']:
+                cv2.destroyWindow(self.drawing_state['window_name'])
+            logger.info("Drawing cancelled by user")
 
     def mouse_callback_draw(self, event, x, y, flags, param):
         """
@@ -131,11 +163,13 @@ class PolygonManager:
             # Finish and save
             ip = self.drawing_state['ip']
             points = self.drawing_state['points']
+            poly_type = self.drawing_state.get('type', 'belt')
+            
             # Points are already in original resolution
             if self.drawing_state['frame_shape'] and len(points) > 2:
                 h, w = self.drawing_state['frame_shape'][:2]
-                self.save_polygon(ip, points, (w, h))
-                logger.info(f"Saved polygon for {ip} with {len(points)} points")
+                self.save_polygon(ip, points, (w, h), poly_type)
+                logger.info(f"Saved {poly_type} polygon for {ip} with {len(points)} points")
             
             # Close window
             self.drawing_state['active'] = False

@@ -6,6 +6,8 @@ from ultralytics import YOLO
 from collections import deque
 from recorder import record_segment_from_frames, SizeLimitedFileHandler, SessionRecorder
 from polygon_manager import PolygonManager
+from config_manager import ConfigManager
+from alarm_manager import AlarmManager
 import time
 import logging
 import os
@@ -16,71 +18,163 @@ import math
 import ctypes
 from queue import Queue, Empty, Full
 
-USERNAME = "root"
-PASSWORD = "wPro@3!4Gen*"
-SCALE_PERCENTAGE = 100
-FPS = 30
-ENABLE_POLYGON_UI = False # Disabled by default, toggled with 'p'
+# Load Configuration
+config = ConfigManager()
 
+log_level_str = config.logging_config.get('level', "INFO")
+LOG_LEVEL = getattr(logging, log_level_str.upper(), logging.INFO)
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=LOG_LEVEL)
 
 # Global state
 ui_frames = {}
+latest_detections = {}
+processing_fps = {} # { ip: fps_value }
+alarm_manager = AlarmManager()
+
 
 # Initialize Recorder (Plug & Play)
 # Usage: recorder.handle_frame(ip, frame) - does nothing if not recording
 session_recorder = SessionRecorder()
 
-def camera_worker_cv2(ip, queue, fps):
-    # url = f"rtsp://{USERNAME}:{PASSWORD}@{ip}:554"
-    url = f"http://{USERNAME}:{PASSWORD}@{ip}/axis-cgi/mjpg/video.cgi?resolution=1920x1080&fps={fps}"
-    print(f"Connecting to {url}")
+def camera_processing_worker(ip, ui_queue, fps, model, polygon_manager):
+    """
+    Consolidated worker for camera capture, recording, and YOLO inference.
+    """
+    # Config extraction
+    username = config.network.get('username', "root")
+    password = config.network.get('password', "root")
+    resolution = config.network.get('camera_resolution', "1920x1080")
+    reconnect_delay = config.network.get('reconnect_delay', 2)
+    scale_percentage = config.processing.get('scale_percentage', 100)
+    check_keypoints = config.processing.get('keypoints', [5, 6, 11, 12, 13, 14, 15, 16])
+    conf_threshold = config.processing.get('model_confidence_threshold', 0.5)
+
+    # url = f"rtsp://{username}:{password}@{ip}:554"
+    url = f"http://{username}:{password}@{ip}/axis-cgi/mjpg/video.cgi?resolution={resolution}&fps={fps}"
+    logger.info(f"Connecting to {url}")
     cap = cv2.VideoCapture(url)
+    
     if not cap.isOpened():
-        logger.error(f"{ip} - Kameraya bağlanılamadı.")
+        logger.error(f"{ip} - Failed to connect to camera.")
         return
+
+    # FPS Tracking
+    fps_start_time = time.time()
+    fps_frame_count = 0
 
     while True:
         if not cap.isOpened():
-            logger.warning(f"{ip} - Bağlantı koptu yeniden bağlanıyor...")
+            logger.warning(f"{ip} - Connection lost, reconnecting...")
             cap.release()
             cap = cv2.VideoCapture(url)
-            time.sleep(2)
+            time.sleep(reconnect_delay)
             continue
 
         ret, frame = cap.read()
+        timestamp = time.time()
+
         if not ret:
-            logger.warning(f"{ip} - Frame alınamadı. Yeniden bağlanmayı deniyor...")
+            logger.warning(f"{ip} - Failed to grab frame. Retrying...")
             cap.release()
-            time.sleep(2)
+            time.sleep(reconnect_delay)
             cap = cv2.VideoCapture(url)
             continue
             
         # Resize if needed based on SCALE_PERCENTAGE
-        if SCALE_PERCENTAGE != 100:
-            width = int(frame.shape[1] * SCALE_PERCENTAGE / 100)
-            height = int(frame.shape[0] * SCALE_PERCENTAGE / 100)
+        if scale_percentage != 100:
+            width = int(frame.shape[1] * scale_percentage / 100)
+            height = int(frame.shape[0] * scale_percentage / 100)
             frame = cv2.resize(frame, (width, height))
         
-        timestamp = time.time()
         
-        # Plug & Play Recording Hook
-        # If recording is inactive, this returns immediately with minimal overhead
+        # --- 1. Recording Hook ---
         session_recorder.handle_frame(ip, frame, fps=fps)
 
-        # Put frame in queue
-        # If queue is full, remove oldest item to make space (keep it real-time)
-        if queue.full():
-            try:
-                queue.get_nowait()
-            except Empty:
-                pass
-        
+        # FPS Calculation
+        fps_frame_count += 1
+        elapsed = time.time() - fps_start_time
+        if elapsed >= 1.0:
+            curr_fps = fps_frame_count / elapsed
+            processing_fps[ip] = curr_fps
+            # logger.info(f"{ip} - Processing FPS: {curr_fps:.2f}")
+            fps_frame_count = 0
+            fps_start_time = time.time()
+
+        # --- 2. Processing (YOLO + Logic) ---
         try:
-            queue.put((timestamp, frame), block=False)
-        except Full:
-            pass
+            # Retrieve polygon for the camera IP
+            poly_data = polygon_manager.get_polygon(ip, 'mask')
+            curr_frame = frame
+            
+            # Apply mask if exists
+            if poly_data:
+                points = poly_data['points']
+                curr_frame = apply_mask(frame, points)
+            
+            # Run model
+            results = model.predict(curr_frame, verbose=False)
+            
+            # Retrieve belt polygon for logic check
+            belt_poly_data = polygon_manager.get_polygon(ip, 'belt')
+
+            current_intrusion = False
+
+            # Store results (plotted on original frame)
+            if results:
+                res = results[0]
+                
+                # --- Stage 1: Detection Logic ---
+                if belt_poly_data:
+                    belt_points = np.array(belt_poly_data['points'], dtype=np.int32)
+                    
+                    # Check keypoints for each detected person
+                    if res.keypoints is not None and res.keypoints.xy is not None:
+                        # keypoints.xy is (N, 17, 2), keypoints.conf is (N, 17)
+                        kpts_xy = res.keypoints.xy.cpu().numpy()
+                        kpts_conf = res.keypoints.conf.cpu().numpy() if res.keypoints.conf is not None else None
+                        
+                        for i, person_kpts in enumerate(kpts_xy):
+                            # Check if ANY keypoint of this person is on the belt
+                            person_on_belt = False
+                            for kp_idx in check_keypoints:
+                                x, y = person_kpts[kp_idx]
+                                conf = kpts_conf[i][kp_idx] if kpts_conf is not None else 1.0
+                                
+                                # Threshold confidence (e.g., 0.5) and valid coordinates
+                                if conf > conf_threshold and (x > 0 or y > 0):
+                                    # Check if point is inside the belt polygon
+                                    if cv2.pointPolygonTest(belt_points, (float(x), float(y)), False) >= 0:
+                                        person_on_belt = True
+                                        break
+                            
+                            if person_on_belt:
+                                current_intrusion = True
+                                break # Optimization: One person is enough to trigger alarm logic
+
+                # --- Push Event to Alarm Manager ---
+                alarm_manager.add_event(ip, current_intrusion, timestamp)
+# ToDo: we dont have to send false current_intrusion, we can just expire the warnings after the trigger_time, could improve performance
+                # Prepare visualization frame (if UI is likely to consume it)
+                res.orig_img = frame # HACK: Swap the original image so plot() draws on the full frame
+                plotted_frame = res.plot()
+                latest_detections[ip] = plotted_frame
+
+        except Exception as e:
+            logger.error(f"Error in processing logic for {ip}: {e}")
+
+        # --- 3. Push to UI Queue (Non-blocking) ---
+        # Only push if queue is not full to avoid slowing down processing
+        if ui_queue is not None:
+            if ui_queue.full():
+                try:
+                    ui_queue.get_nowait() # Drop oldest frame
+                except Empty:
+                    pass
+            try:
+                ui_queue.put((timestamp, frame), block=False)
+            except Full:
+                pass
 
 def get_screen_resolution():
     try:
@@ -139,16 +233,56 @@ def draw_grid_cells(canvas, grid_layout, polygon_manager, grid_w, grid_h):
                 if h_curr != resized.shape[0] or w_curr != resized.shape[1]:
                     resized = cv2.resize(frame, (w_curr, h_curr))
 
+                # --- Alarm Visualization Border ---
+                status = alarm_manager.get_status(ip)
+                if status != 'SAFE':
+                    border_color = (0, 255, 0) # Default
+                    border_thickness = 2
+                    
+                    if status == 'WARNING':
+                        border_color = (0, 255, 255) # Yellow
+                        border_thickness = 4
+                    elif status == 'ALARM':
+                        border_color = (0, 0, 255) # Red
+                        border_thickness = 8
+                        
+                    # Draw border on the resized frame (or canvas area)
+                    cv2.rectangle(resized, (0, 0), (w_curr-1, h_curr-1), border_color, border_thickness)
+
                 canvas[y1:y2, x1:x2] = resized
                 
-                # Draw Saved Polygon
-                poly_data = polygon_manager.get_polygon(ip)
-                if poly_data:
-                    orig_points = poly_data['points']
-                    orig_w, orig_h = poly_data['resolution']
+                scale_x = w_curr / frame.shape[1]
+                scale_y = h_curr / frame.shape[0]
+
+                # Draw Pose Detections (Pre-rendered)
+                if ip in latest_detections:
+                    plotted_frame = latest_detections[ip]
+                    if plotted_frame is not None:
+                        plotted_resized = cv2.resize(plotted_frame, (w_curr, h_curr))
+                        canvas[y1:y2, x1:x2] = plotted_resized
+
+                # --- Draw Mask Polygon (Blue) ---
+                mask_poly = polygon_manager.get_polygon(ip, 'mask')
+                if mask_poly:
+                    orig_points = mask_poly['points']
+                    scaled_points = []
+                    for pt in orig_points:
+                        sx = int(pt[0] * scale_x) + x1
+                        sy = int(pt[1] * scale_y) + y1
+                        scaled_points.append([sx, sy])
                     
-                    scale_x = w_curr / orig_w
-                    scale_y = h_curr / orig_h
+                    if len(scaled_points) > 0:
+                        poly_cnt = np.array(scaled_points)
+                        # Draw semi-transparent fill for mask
+                        overlay = canvas.copy()
+                        cv2.fillPoly(overlay, [poly_cnt], (255, 0, 0)) # Blue
+                        cv2.addWeighted(overlay, 0.2, canvas, 0.8, 0, canvas)
+                        cv2.polylines(canvas, [poly_cnt], True, (255, 255, 0), 2) # Cyan outline
+
+                # --- Draw Belt Polygon (Green/Red) ---
+                belt_poly = polygon_manager.get_polygon(ip, 'belt')
+                if belt_poly:
+                    orig_points = belt_poly['points']
                     
                     scaled_points = []
                     for pt in orig_points:
@@ -159,31 +293,27 @@ def draw_grid_cells(canvas, grid_layout, polygon_manager, grid_w, grid_h):
                     if len(scaled_points) > 0:
                         poly_cnt = np.array(scaled_points)
                         
-                        # Collision Detection Test
-                        mx, my = polygon_manager.mouse_pos
-                        rect_half = 10
-                        collision = False
-                        
-                        # Check 4 corners of the mouse rectangle
-                        corners = [
-                            (mx - rect_half, my - rect_half),
-                            (mx + rect_half, my - rect_half),
-                            (mx + rect_half, my + rect_half),
-                            (mx - rect_half, my + rect_half)
-                        ]
-                        
-                        for cx, cy in corners:
-                            if cv2.pointPolygonTest(poly_cnt, (cx, cy), False) >= 0:
-                                collision = True
-                                break
-                        
-                        color = (0, 0, 255) if collision else (0, 255, 0)
+                        color = (0, 255, 0)
                         cv2.polylines(canvas, [poly_cnt], True, color, 2)
                 
-                # Draw IP label and timestamp
+                # Draw IP label, timestamp, and FPS
                 time_str = time.strftime("%H:%M:%S", time.localtime(timestamp))
-                cv2.putText(canvas, f"{ip} | {time_str}", (x1 + 10, y1 + 30), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+                fps_text = ""
+                if ip in processing_fps:
+                    fps_text = f" | FPS: {processing_fps[ip]:.1f}"
+                
+                # Append status to label
+                status_text = ""
+                text_color = (0, 255, 255)
+                
+                status = alarm_manager.get_status(ip)
+                if status != 'SAFE':
+                     status_text = f" | {status}"
+                     if status == 'ALARM': text_color = (0, 0, 255)
+                     elif status == 'WARNING': text_color = (0, 255, 255)
+
+                cv2.putText(canvas, f"{ip} | {time_str}{fps_text}{status_text}", (x1 + 10, y1 + 30), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, text_color, 2)
                 
                 # Recording Indicator per Camera (on grid)
                 if session_recorder.get_status():
@@ -198,13 +328,10 @@ def draw_grid_cells(canvas, grid_layout, polygon_manager, grid_w, grid_h):
                     1, (0, 0, 255), 2)
     
     # Edit Mode Indicator
-    if grid_layout['enabled']:
-            cv2.putText(canvas, "EDIT MODE", (grid_w - 200, 80), cv2.FONT_HERSHEY_SIMPLEX, 
-                    0.8, (0, 255, 0), 2)
-
-    # Draw Mouse Cursor Rect for Collision Test
-    mx, my = polygon_manager.mouse_pos
-    cv2.rectangle(canvas, (mx - 10, my - 10), (mx + 10, my + 10), (255, 255, 0), 1)
+    if config.ui.get('enable_polygon_ui', False):
+        mode_str = polygon_manager.edit_mode.upper()
+        cv2.putText(canvas, f"EDIT MODE: {mode_str}", (grid_w - 250, 80), cv2.FONT_HERSHEY_SIMPLEX, 
+                0.8, (0, 255, 0), 2)
 
 def handle_polygon_drawing_window(polygon_manager, grid_w, grid_h):
     drawing_state = polygon_manager.drawing_state
@@ -256,12 +383,18 @@ def handle_polygon_drawing_window(polygon_manager, grid_w, grid_h):
                         
                 cv2.imshow(win_name, draw_img)
 
-def handle_key_press(key, grid_layout, session_recorder):
+def handle_key_press(key, grid_layout, session_recorder, polygon_manager):
     if key == ord('p'):
-        # Toggle Polygon UI
-        grid_layout['enabled'] = not grid_layout['enabled']
-        state = "ENABLED" if grid_layout['enabled'] else "DISABLED"
-        logger.info(f"Polygon UI {state}")
+        # Toggle Polygon UI - update logic if needed, for now just logs
+        # grid_layout['enabled'] logic might need revisit if we use config directly
+        # But if we want runtime toggle, we might need mutable state or update config object (in-memory)
+        pass 
+    elif key == ord('b'):
+        # Switch to Belt Mode
+        polygon_manager.set_mode('belt')
+    elif key == ord('m'):
+        # Switch to Mask Mode
+        polygon_manager.set_mode('mask')
     elif key == ord('r'):
         # Toggle recording
         if session_recorder.get_status():
@@ -271,21 +404,30 @@ def handle_key_press(key, grid_layout, session_recorder):
             session_recorder.start_session()
             logger.info("Recording STARTED via UI")
 
-def ui_worker(queues):
+def ui_worker(queues, polygon_manager):
     last_num_cameras = -1
 
     # Screen resolution detection
     grid_w, grid_h = [int(resolution * 0.8) for resolution in get_screen_resolution()]
     
     
-    polygon_manager = PolygonManager()
+    # polygon_manager = PolygonManager() # Shared instance passed in
     
     # State for main grid layout, shared with callback
+    # grid_layout = {
+    #     'cols': 1, 'rows': 1, 
+    #     'cell_w': grid_w, 'cell_h': grid_h,
+    #     'sorted_ips': [],
+    #     'enabled': ENABLE_POLYGON_UI
+    # }
+    # Replaced 'enabled' with direct config access in draw loop if needed, 
+    # but for mouse callback we still need it if we want to block clicks.
+    # Let's keep the struct but init from config
     grid_layout = {
         'cols': 1, 'rows': 1, 
         'cell_w': grid_w, 'cell_h': grid_h,
         'sorted_ips': [],
-        'enabled': ENABLE_POLYGON_UI
+        'enabled': config.ui.get('enable_polygon_ui', False)
     }
     
     
@@ -334,7 +476,10 @@ def ui_worker(queues):
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
             break
-        else: handle_key_press(key, grid_layout, session_recorder)
+        elif key == 27: # ESC key
+            if polygon_manager.drawing_state['active']:
+                polygon_manager.cancel_drawing()
+        else: handle_key_press(key, grid_layout, session_recorder, polygon_manager)
         
         
         time.sleep(0.01)
@@ -343,6 +488,12 @@ def ui_worker(queues):
     # Ensure cleanup on exit
     session_recorder.stop_session()
 
+def apply_mask(frame, points):
+    mask = np.zeros(frame.shape[:2], dtype=np.uint8)
+    pts = np.array(points, dtype=np.int32)
+    cv2.fillPoly(mask, [pts], 255)
+    masked_frame = cv2.bitwise_and(frame, frame, mask=mask)
+    return masked_frame
 
 if __name__ == "__main__":
     print("Starting the program...")
@@ -351,25 +502,58 @@ if __name__ == "__main__":
         "10.60.170.216"
     ]
     
-    queues = {}
+    ui_queues = {}
+    
+    polygon_manager = PolygonManager()
+
+    # Load YOLO model once in main thread
+    logger.info("Loading YOLO model...")
+    try:
+        model_folder = config.processing.get('model_folder_path', "models")
+        model_name = config.processing.get('model_name', "yolo11s-pose.pt")
+        model_path = os.path.join(model_folder, model_name)
+        
+        model = YOLO(model_path)
+        logger.info(f"YOLO model loaded from {model_path}")
+    except Exception as e:
+        logger.error(f"Failed to load YOLO model: {e}")
+        exit(1)
     
     # Start camera threads
+    fps_val = config.processing.get('fps', 30)
+    queue_size = config.ui.get('queue_size', 2)
+    
     for ip in camera_list:
-        q = Queue(maxsize=2) # Small buffer to keep latency low
-        queues[ip] = q
-        t = threading.Thread(target=camera_worker_cv2, args=(ip, q, FPS), daemon=True)
+        uq = Queue(maxsize=queue_size) # Small buffer for UI
+        ui_queues[ip] = uq
+        # Processing queue no longer needed
+        
+        # Consolidated Camera & Processing Thread
+        t = threading.Thread(target=camera_processing_worker, args=(ip, uq, fps_val, model, polygon_manager), daemon=True)
         t.start()
-        print(f"Started thread for {ip}")
+        print(f"Started consolidated worker for {ip}")
 
     # Start UI thread
-    # Note: cv2.imshow usually needs to run in the main thread on some systems (like macOS)
-    # but on Windows it can often run in a separate thread if main waits.
-    # To be safe and flexible, I'll run it as a thread but join it in main.
-    ui = threading.Thread(target=ui_worker, args=(queues,), daemon=True)
-    ui.start()
-    print("Started UI thread")
+    if config.ui.get('enable_ui', True):
+        # Note: cv2.imshow usually needs to run in the main thread on some systems (like macOS)
+        # but on Windows it can often run in a separate thread if main waits.
+        # To be safe and flexible, I'll run it as a thread but join it in main.
+        ui = threading.Thread(target=ui_worker, args=(ui_queues, polygon_manager), daemon=True)
+        ui.start()
+        print("Started UI thread")
+    else:
+        print("UI disabled by config")
+
+    # Start Alarm Manager thread
+    am_thread = threading.Thread(target=alarm_manager.worker, daemon=True)
+    am_thread.start()
+    print("Started Alarm Manager thread")
     
     try:
-        ui.join()
+        if config.ui.get('enable_ui', True):
+            ui.join()
+        else:
+            while True:
+                time.sleep(1)
     except KeyboardInterrupt:
         print("Exiting...")

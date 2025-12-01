@@ -1,0 +1,27 @@
+{
+    "network": {
+        "username": "root",
+        "password": "wPro@3!4Gen*",
+        "reconnect_delay": 2,
+        "camera_resolution": "1920x1080"
+    },
+    "processing": {
+        "fps": 30,
+        "scale_percentage": 100,
+        "model_folder_path": "models",
+        "model_name": "yolo11s-pose.pt",
+        "model_confidence_threshold": 0.5,
+        "keypoints": [5, 6, 11, 12, 13, 14, 15, 16]
+    },
+    "alarm": {
+        "trigger_time": 3.0
+    },
+    "ui": {
+        "enable_polygon_ui": false,
+        "enable_ui": true,
+        "queue_size": 2
+    },
+    "logging": {
+        "level": "INFO"
+    }
+}
