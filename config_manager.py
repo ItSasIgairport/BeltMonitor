@@ -1,6 +1,8 @@
 import json
 import os
 import logging
+import threading
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,28 @@ class ConfigManager:
         else:
             logger.warning(f"Config file {self.config_path} not found! Using defaults.")
             self.config = {}
+
+    def start_monitoring(self, interval=2):
+        """Start a background thread to monitor config file changes"""
+        def monitor():
+            last_mtime = 0
+            if os.path.exists(self.config_path):
+                last_mtime = os.path.getmtime(self.config_path)
+
+            while True:
+                try:
+                    if os.path.exists(self.config_path):
+                        current_mtime = os.path.getmtime(self.config_path)
+                        if current_mtime > last_mtime:
+                            logger.info("Config file changed, reloading...")
+                            self.load_config()
+                            last_mtime = current_mtime
+                except Exception as e:
+                    logger.error(f"Error monitoring config file: {e}")
+                time.sleep(interval)
+        
+        t = threading.Thread(target=monitor, daemon=True)
+        t.start()
 
     def get(self, section, key, default=None):
         """Safe getter for nested config keys"""

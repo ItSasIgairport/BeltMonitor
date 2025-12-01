@@ -1,11 +1,18 @@
 {
     "network": {
+        "source_type": "stream",
+        "video_file_path": "video/test.avi",
         "username": "root",
         "password": "wPro@3!4Gen*",
         "reconnect_delay": 2,
-        "camera_resolution": "1920x1080"
+        "camera_resolution": "1920x1080",
+        "cameras": [
+            "10.60.170.215",
+            "10.60.170.216"
+        ]
     },
     "processing": {
+        "enable_yolo": true,
         "fps": 30,
         "scale_percentage": 100,
         "model_folder_path": "models",
@@ -13,11 +20,19 @@
         "model_confidence_threshold": 0.5,
         "keypoints": [5, 6, 11, 12, 13, 14, 15, 16]
     },
+    "event_recording": {
+        "enabled": true,
+        "pre_event_sec": 4,
+        "post_event_sec": 4,
+        "trigger_on_warning": false,
+        "trigger_on_alarm": true,
+        "save_path": "event_recordings"
+    },
     "alarm": {
         "trigger_time": 3.0
     },
     "ui": {
-        "enable_polygon_ui": false,
+        "enable_polygon_ui": true,
         "enable_ui": true,
         "queue_size": 2
     },
