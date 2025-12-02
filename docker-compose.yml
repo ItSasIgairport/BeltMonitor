@@ -1,0 +1,25 @@
+services:
+  yolo-monitor:
+    build: .
+    container_name: yolo_monitor
+    restart: unless-stopped
+    ipc: host # Required for multiprocessing shared memory with PyTorch
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ./config.json:/app/config.json
+      - ./polygons.json:/app/polygons.json
+      - ./models:/app/models
+      - ./logs:/app/logs
+      - ./recordings:/app/recordings
+      - ./event_recordings:/app/event_recordings
+      - ./video:/app/video
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+

@@ -16,7 +16,7 @@
         "fps": 30,
         "scale_percentage": 100,
         "model_folder_path": "models",
-        "model_name": "yolo11s-pose.pt",
+        "model_name": "yolo11m-pose.pt",
         "model_confidence_threshold": 0.5,
         "keypoints": [5, 6, 11, 12, 13, 14, 15, 16]
     },
@@ -32,11 +32,14 @@
         "trigger_time": 3.0
     },
     "ui": {
-        "enable_polygon_ui": true,
-        "enable_ui": true,
+        "enable_polygon_ui": false,
+        "enable_ui": false,
         "queue_size": 2
     },
     "logging": {
-        "level": "INFO"
+        "level": "INFO",
+        "file": "logs/app.log",
+        "max_bytes": 10485760,
+        "backup_count": 5
     }
 }

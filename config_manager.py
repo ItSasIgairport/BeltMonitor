@@ -3,13 +3,14 @@ import os
 import logging
 import threading
 import time
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 class ConfigManager:
     _instance = None
     
-    def __new__(cls, config_path="config.json"):
+    def __new__(cls, config_path: str = "config.json"):
         if cls._instance is None:
             cls._instance = super(ConfigManager, cls).__new__(cls)
             cls._instance.config_path = config_path
@@ -17,21 +18,48 @@ class ConfigManager:
             cls._instance.load_config()
         return cls._instance
 
-    def load_config(self):
+    def load_config(self) -> None:
         """Load configuration from JSON file"""
         if os.path.exists(self.config_path):
             try:
                 with open(self.config_path, 'r') as f:
                     self.config = json.load(f)
+                self.validate_config()
                 logger.info(f"Loaded configuration from {self.config_path}")
             except Exception as e:
                 logger.error(f"Failed to load config: {e}")
-                self.config = {}
+                # If load fails, keep previous config or empty? 
+                # For now, if it fails, we might want to keep old or empty. 
+                # If it's first load, it stays empty.
+                if not self.config:
+                    self.config = {}
         else:
             logger.warning(f"Config file {self.config_path} not found! Using defaults.")
             self.config = {}
 
-    def start_monitoring(self, interval=2):
+    def validate_config(self) -> None:
+        """Validates the loaded configuration for required keys and types."""
+        required_structure = {
+            "network": ["source_type"],
+            "processing": ["enable_yolo", "fps"],
+            "logging": ["level"]
+        }
+
+        for section, keys in required_structure.items():
+            if section not in self.config:
+                logger.warning(f"Missing config section: {section}")
+                self.config[section] = {}
+            
+            for key in keys:
+                if key not in self.config[section]:
+                    logger.warning(f"Missing required config key: {section}.{key}")
+
+        # Type checks
+        fps = self.get("processing", "fps")
+        if fps is not None and not isinstance(fps, (int, float)):
+             logger.error(f"Invalid type for processing.fps: {type(fps)}. Expected int or float.")
+
+    def start_monitoring(self, interval: int = 2) -> None:
         """Start a background thread to monitor config file changes"""
         def monitor():
             last_mtime = 0
@@ -53,27 +81,26 @@ class ConfigManager:
         t = threading.Thread(target=monitor, daemon=True)
         t.start()
 
-    def get(self, section, key, default=None):
+    def get(self, section: str, key: str, default: Any = None) -> Any:
         """Safe getter for nested config keys"""
         return self.config.get(section, {}).get(key, default)
 
     @property
-    def network(self):
+    def network(self) -> Dict[str, Any]:
         return self.config.get('network', {})
 
     @property
-    def processing(self):
+    def processing(self) -> Dict[str, Any]:
         return self.config.get('processing', {})
 
     @property
-    def alarm(self):
+    def alarm(self) -> Dict[str, Any]:
         return self.config.get('alarm', {})
 
     @property
-    def ui(self):
+    def ui(self) -> Dict[str, Any]:
         return self.config.get('ui', {})
         
     @property
-    def logging_config(self):
+    def logging_config(self) -> Dict[str, Any]:
         return self.config.get('logging', {})
-

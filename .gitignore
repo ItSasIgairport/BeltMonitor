@@ -12,3 +12,5 @@ alarm_manager.py
 models/*
 recordings/*
 logs/*
+event_recordings/*
+video/*
