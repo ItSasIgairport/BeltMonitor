@@ -16,4 +16,6 @@ event_recordings/*
 video/*
 README.md
 TODO.md
-test_image.tar
+
+# Local wheels
+wheels/

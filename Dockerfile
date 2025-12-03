@@ -46,6 +46,11 @@ EXPOSE 22
 WORKDIR /app
 COPY . /app
 
+# Install local wheels first (to avoid download timeouts for large files)
+RUN if ls wheels/*.whl 1> /dev/null 2>&1; then \
+    pip install wheels/*.whl; \
+    fi
+
 # Python bağımlılıklarını yükle
 RUN pip install --upgrade pip --trusted-host pypi.org --trusted-host files.pythonhosted.org
 RUN if [ -f requirements.txt ]; then \
