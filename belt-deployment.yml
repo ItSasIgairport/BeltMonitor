@@ -15,7 +15,7 @@ spec:
       runtimeClassName: nvidia
       containers:
         - name: belt-monitor-latest-container
-          image: docker.io/library/belt-monitor-image:latest
+          image: docker.io/library/belt-monitorv3:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 22
