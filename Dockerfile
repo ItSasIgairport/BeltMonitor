@@ -1,11 +1,7 @@
-# Use an official PyTorch image with CUDA support
 FROM pytorch/pytorch:2.2.2-cuda12.1-cudnn8-runtime
 
-# Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
-ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies required for OpenCV
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-server \
     software-properties-common \
@@ -21,27 +17,42 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libopus-dev \
     wget \
     pkg-config \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
+
+# FFmpeg (statik build, libx264 dahil)
+WORKDIR /opt
+RUN wget --no-check-certificate https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz && \
+    tar -xf ffmpeg-release-amd64-static.tar.xz && \
+    mv ffmpeg-*-amd64-static ffmpeg && \
+    rm -f ffmpeg-release-amd64-static.tar.xz
+
+# PATH içine statik ffmpeg klasörünü ekle
+ENV PATH="/opt/ffmpeg:$PATH"
+
+# Root şifresini ayarla
+RUN echo "root:pass123**" | chpasswd
+
+# SSH dizinini oluştur
+RUN mkdir /var/run/sshd
+
+# Root login’a izin ver
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+# SSH portunu dışa aç
+EXPOSE 22
+
+# Uygulama dizinine geç
 WORKDIR /app
+COPY . /app
 
-# Copy requirements first to leverage Docker cache
-COPY requirements.txt .
+# Python bağımlılıklarını yükle
+RUN pip install --upgrade pip --trusted-host pypi.org --trusted-host files.pythonhosted.org
+RUN if [ -f requirements.txt ]; then \
+    pip install --trusted-host pypi.org --trusted-host files.pythonhosted.org --trusted-host pypi.nvidia.com \
+    --extra-index-url https://pypi.nvidia.com \
+    -r requirements.txt; \
+    fi
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
-
-# Copy the rest of the application code
-COPY . .
-
-# Create directories for persistence if they don't exist
-RUN mkdir -p logs recordings event_recordings
-
-# Command to run the application
-CMD ["python3", "main.py"]
+# Başlangıç komutu: SSH ve uygulama birlikte çalışsın
+CMD ["sh", "-c", "service ssh start && python3 main.py"]

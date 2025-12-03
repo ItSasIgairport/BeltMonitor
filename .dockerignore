@@ -19,3 +19,8 @@ deployment.yml
 recordings/
 event_recordings/
 logs/
+*.tar
+*.mp4
+*.avi
+*.db
+.DS_Store

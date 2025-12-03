@@ -1,7 +1,7 @@
 import cv2
 import time
 import logging
-from alarm_manager import AlarmManager
+from core.alarm_manager import AlarmManager
 
 logger = logging.getLogger(__name__)
 

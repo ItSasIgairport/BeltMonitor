@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import logging
 import time
-from config_manager import ConfigManager
+from core.config_manager import ConfigManager
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ def inference_worker(ip, inference_queue, model, polygon_manager, alarm_manager,
             results = None
             if enable_yolo:
                 t0 = time.time()
-                results = model.predict(curr_frame, verbose=False)
+                results = model.predict(curr_frame, verbose=False, conf=conf_threshold)
                 t1 = time.time()
                 inf_time_ms = (t1 - t0) * 1000
                 if shared_state is not None and 'inference_time' in shared_state:
@@ -59,6 +59,7 @@ def inference_worker(ip, inference_queue, model, polygon_manager, alarm_manager,
             belt_poly_data = polygon_manager.get_polygon(ip, 'belt')
 
             current_intrusion = False
+            detection_info = None
 
             # Store RAW results for UI to draw later
             if results:
@@ -88,14 +89,15 @@ def inference_worker(ip, inference_queue, model, polygon_manager, alarm_manager,
                                     if conf > conf_threshold and (x > 0 or y > 0):
                                         if cv2.pointPolygonTest(belt_points, (float(x), float(y)), False) >= 0:
                                             person_on_belt = True
+                                            detection_info = {'confidence': float(conf), 'keypoint_index': kp_idx}
                                             break
                             
                             if person_on_belt:
                                 current_intrusion = True
                                 break 
 
-                # --- Push Event to Alarm Manager ---
-                alarm_manager.add_event(ip, current_intrusion, timestamp)
+            # --- Push Event to Alarm Manager ---
+            alarm_manager.add_event(ip, current_intrusion, timestamp, detection_info)
 
             # FPS Calculation
             fps_frame_count += 1

@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: belt-monitor-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: belt-monitor
+  template:
+    metadata:
+      labels:
+        app: belt-monitor
+    spec:
+      runtimeClassName: nvidia
+      containers:
+        - name: belt-monitor-latest-container
+          image: docker.io/library/belt-monitor-image:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 22
+              name: ssh
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+          volumeMounts:
+            - name: event-recordings-volume
+              mountPath: /app/event_recordings
+            - name: logs-volume
+              mountPath: /app/logs
+
+
+      volumes:
+        - name: event-recordings-volume
+          hostPath:
+            path: /mnt/event_recordings
+            type: DirectoryOrCreate
+        - name: logs-volume
+          hostPath:
+            path: /mnt/logs
+            type: DirectoryOrCreate
+    
+

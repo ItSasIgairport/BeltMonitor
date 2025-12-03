@@ -2,7 +2,7 @@ import cv2
 import time
 import logging
 from queue import Empty, Full
-from config_manager import ConfigManager
+from core.config_manager import ConfigManager
 
 logger = logging.getLogger(__name__)
 

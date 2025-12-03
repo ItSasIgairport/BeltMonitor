@@ -6,7 +6,7 @@ import ctypes
 import platform
 import logging
 from queue import Empty
-from config_manager import ConfigManager
+from core.config_manager import ConfigManager
 
 logger = logging.getLogger(__name__)
 

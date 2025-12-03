@@ -1,5 +1,6 @@
 import cv2
 import torch
+import platform
 from ultralytics import YOLO
 from queue import Queue
 import threading
@@ -8,11 +9,11 @@ import time
 import logging
 
 # Internal Modules
-from config_manager import ConfigManager
-from polygon_manager import PolygonManager
-from alarm_manager import AlarmManager
-from recorder import SessionRecorder
-from logger import setup_logger
+from core.config_manager import ConfigManager
+from core.polygon_manager import PolygonManager
+from core.alarm_manager import AlarmManager
+from core.recorder import SessionRecorder
+from core.logger import setup_logger
 
 # Workers
 from workers.capture_worker import camera_capture_worker
@@ -67,7 +68,43 @@ def main():
         model_name = config.processing.get('model_name', "yolo11s-pose.pt")
         model_path = os.path.join(model_folder, model_name)
         
-        model = YOLO(model_path)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device_name = torch.cuda.get_device_name(0) if device == "cuda" else platform.processor() or "CPU"
+        logger.info(f"PyTorch device: {device} - {device_name}")
+
+        if device == "cuda":
+            before_mem = torch.cuda.memory_allocated(0)
+
+            # TensorRT Export Logic
+            engine_name = model_name.rsplit('.', 1)[0] + '.engine'
+            engine_path = os.path.join(model_folder, engine_name)
+
+            if not os.path.exists(engine_path):
+                logger.info(f"TensorRT engine not found at {engine_path}. Exporting {model_name}...")
+                # Load PyTorch model for export
+                pt_model = YOLO(model_path)
+                # Export to TensorRT Engine with int8 and dynamic shape support
+                pt_model.export(format="engine", int8=True, dynamic=True)
+                logger.info("Export complete.")
+
+            if os.path.exists(engine_path):
+                logger.info(f"Using TensorRT engine: {engine_path}")
+                model_path = engine_path
+            else:
+                logger.warning("Expected engine file not found after export logic. Using original PT model.")
+
+        model = YOLO(model_path).to(device)
+
+        if device == "cuda":
+            total_memory = torch.cuda.get_device_properties(0).total_memory
+            after_mem = torch.cuda.memory_allocated(0)
+            peak_mem = torch.cuda.max_memory_allocated(0)
+            reserved_memory = torch.cuda.memory_reserved(0)
+            logger.info(f"  Total Memory      : {total_memory / (1024 ** 2):.2f} MB")
+            logger.info(f"  Reserved Memory   : {reserved_memory / (1024 ** 2):.2f} MB")
+            logger.info(f"  Used Memory       : {((after_mem - before_mem) / (1024 ** 2)):.2f} MB")
+            logger.info(f"  Peak GPU Memory   : {(peak_mem / (1024 ** 2)):.2f} MB")
+
         logger.info(f"YOLO model loaded from {model_path}")
     except Exception as e:
         logger.error(f"Failed to load YOLO model: {e}")
@@ -123,12 +160,12 @@ def main():
     logger.info("Started Alarm Manager thread")
 
     # Start Performance Monitor thread
-    pm_thread = threading.Thread(target=performance_monitor, args=(shared_state, 10), daemon=True)
+    pm_thread = threading.Thread(target=performance_monitor, args=(shared_state, 30), daemon=True)
     pm_thread.start()
     logger.info("Started Performance Monitor thread")
 
     # Start UI thread
-    if config.ui.get('enable_ui', True):
+    if config.ui.get('enable_ui', False):
         # UI Worker needs access to queues to consume frames
         ui = threading.Thread(
             target=ui_worker, 
