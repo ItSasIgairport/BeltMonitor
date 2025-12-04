@@ -84,7 +84,7 @@ def main():
                 # Load PyTorch model for export
                 pt_model = YOLO(model_path)
                 # Export to TensorRT Engine with int8 and dynamic shape support
-                pt_model.export(format="engine", int8=True, dynamic=True)
+                pt_model.export(format="engine",half=True, dynamic=True, batch=1)
                 logger.info("Export complete.")
 
             if os.path.exists(engine_path):
