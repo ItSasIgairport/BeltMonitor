@@ -81,11 +81,15 @@ def main():
 
             if not os.path.exists(engine_path):
                 logger.info(f"TensorRT engine not found at {engine_path}. Exporting {model_name}...")
-                # Load PyTorch model for export
-                pt_model = YOLO(model_path)
-                # Export to TensorRT Engine with int8 and dynamic shape support
-                pt_model.export(format="engine",half=True, dynamic=True, batch=1)
-                logger.info("Export complete.")
+                try:
+                    # Load PyTorch model for export
+                    pt_model = YOLO(model_path)
+                    # Export to TensorRT Engine with int8 and dynamic shape support
+                    pt_model.export(format="engine",half=True, dynamic=True, batch=1)
+                    logger.info("Export complete.")
+                except Exception as e:
+                    logger.error(f"TensorRT export failed: {e}")
+                    logger.warning("Proceeding with PyTorch model (.pt) due to export failure.")
 
             if os.path.exists(engine_path):
                 logger.info(f"Using TensorRT engine: {engine_path}")
