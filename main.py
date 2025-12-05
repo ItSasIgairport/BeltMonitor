@@ -97,7 +97,12 @@ def main():
             else:
                 logger.warning("Expected engine file not found after export logic. Using original PT model.")
 
-        model = YOLO(model_path).to(device)
+        if model_path.endswith('.engine'):
+             # TensorRT engines are pre-compiled for GPU, don't use .to(device)
+             logger.info("Loading TensorRT Engine...")
+             model = YOLO(model_path, task='pose')
+        else:
+             model = YOLO(model_path).to(device)
 
         if device == "cuda":
             total_memory = torch.cuda.get_device_properties(0).total_memory
