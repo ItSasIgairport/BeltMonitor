@@ -6,6 +6,14 @@ from core.config_manager import ConfigManager
 
 logger = logging.getLogger(__name__)
 
+# COCO-Pose Keypoint Mapping
+KEYPOINT_NAMES = {
+    0: "Nose", 1: "Left Eye", 2: "Right Eye", 3: "Left Ear", 4: "Right Ear",
+    5: "Left Shoulder", 6: "Right Shoulder", 7: "Left Elbow", 8: "Right Elbow",
+    9: "Left Wrist", 10: "Right Wrist", 11: "Left Hip", 12: "Right Hip",
+    13: "Left Knee", 14: "Right Knee", 15: "Left Ankle", 16: "Right Ankle"
+}
+
 def apply_mask(frame, points):
     """
     Applies a polygon mask to the frame.
@@ -27,6 +35,11 @@ def inference_worker(ip, inference_queue, model, polygon_manager, alarm_manager,
     fps_start_time = time.time()
     fps_frame_count = 0
 
+    # Mask Caching
+    last_mask_points = None
+    cached_mask = None
+    last_frame_shape = None
+
     while True:
         try:
             timestamp, frame = inference_queue.get()
@@ -43,13 +56,29 @@ def inference_worker(ip, inference_queue, model, polygon_manager, alarm_manager,
             # Apply mask if exists
             if poly_data:
                 points = poly_data['points']
-                curr_frame = apply_mask(frame, points)
+                # Recompute mask only if points or frame size changed
+                if (points != last_mask_points or 
+                    cached_mask is None or 
+                    frame.shape[:2] != last_frame_shape):
+                    
+                    mask = np.zeros(frame.shape[:2], dtype=np.uint8)
+                    pts = np.array(points, dtype=np.int32)
+                    cv2.fillPoly(mask, [pts], 255)
+                    cached_mask = mask
+                    last_mask_points = points
+                    last_frame_shape = frame.shape[:2]
+
+                curr_frame = cv2.bitwise_and(frame, frame, mask=cached_mask)
+            else:
+                last_mask_points = None
+                cached_mask = None
             
             # Run model if enabled
             results = None
             if enable_yolo:
                 t0 = time.time()
                 results = model.predict(curr_frame, verbose=False, conf=conf_threshold)
+
                 t1 = time.time()
                 inf_time_ms = (t1 - t0) * 1000
                 if shared_state is not None and 'inference_time' in shared_state:
@@ -89,7 +118,12 @@ def inference_worker(ip, inference_queue, model, polygon_manager, alarm_manager,
                                     if conf > conf_threshold and (x > 0 or y > 0):
                                         if cv2.pointPolygonTest(belt_points, (float(x), float(y)), False) >= 0:
                                             person_on_belt = True
-                                            detection_info = {'confidence': float(conf), 'keypoint_index': kp_idx}
+                                            kp_name = KEYPOINT_NAMES.get(kp_idx, f"Keypoint {kp_idx}")
+                                            detection_info = {
+                                                'confidence': float(conf), 
+                                                'keypoint_index': kp_idx,
+                                                'keypoint_name': kp_name
+                                            }
                                             break
                             
                             if person_on_belt:

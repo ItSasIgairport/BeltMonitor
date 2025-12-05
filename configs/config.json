@@ -18,7 +18,14 @@
         "model_folder_path": "models",
         "model_name": "yolo11m-pose.pt",
         "model_confidence_threshold": 0.35,
-        "keypoints": [5, 6, 11, 12, 13, 14, 15, 16]
+        "keypoints": [5, 6, 11, 12, 13, 14, 15, 16],
+        "export_settings": {
+            "format": "engine",
+            "half": true,
+            "int8": false,
+            "dynamic": true,
+            "batch": 1
+        }
     },
     "event_recording": {
         "enabled": true,

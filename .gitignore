@@ -1,20 +1,59 @@
 # Python-generated files
 __pycache__/
-*.py[oc]
+*.py[cod]
+*$py.class
+*.so
+.Python
 build/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
 wheels/
-*.egg-info
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Virtual environments
+# Virtual Environment
+.env
 .venv
-models/*
-recordings/*
-logs/*
-event_recordings/*
-video/*
-README.md
-TODO.md
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# Local wheels
-wheels/
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and Recordings
+logs/
+*.log
+recordings/
+event_recordings/
+video/
+
+# Models
+models/
+
+# Configs with secrets
+configs/config.json
+
+# Project specific
+TODO.md
+# README.md was previously ignored, un-ignoring for standard practice. Uncomment if needed.
+# README.md

@@ -84,8 +84,16 @@ def main():
                 try:
                     # Load PyTorch model for export
                     pt_model = YOLO(model_path)
-                    # Export to TensorRT Engine with int8 and dynamic shape support
-                    pt_model.export(format="engine",half=True, dynamic=True, batch=1)
+                    # Export to TensorRT Engine with dynamic shape support
+                    # Note: INT8 requires calibration data (add int8=True, data='coco-pose.yaml')
+                    export_settings = config.processing.get('export_settings', {
+                        "format": "engine",
+                        "half": True,
+                        "dynamic": True,
+                        "batch": 1
+                    })
+                    logger.info(f"Exporting to TensorRT with settings: {export_settings}")
+                    pt_model.export(**export_settings)
                     logger.info("Export complete.")
                 except Exception as e:
                     logger.error(f"TensorRT export failed: {e}")

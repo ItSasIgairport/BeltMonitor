@@ -1,26 +1,48 @@
+# Version control
+.git
+.gitignore
+
+# Python
 __pycache__
 *.pyc
 *.pyo
 *.pyd
 .Python
-env/
-venv/
+build
+dist
+wheels
+*.egg-info
+.installed.cfg
+*.egg
+
+# Virtual Environment
 .env
 .venv
-pip-log.txt
-pip-delete-this-directory.txt
-.idea/
-.vscode/
-.git/
-.gitignore
-Dockerfile
-docker-compose.yml
-deployment.yml
-recordings/
-event_recordings/
-logs/
-*.tar
-*.mp4
-*.avi
-*.db
+env
+venv
+ENV
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# Large Data / Logs
+logs
+recordings
+event_recordings
+video
+models
+
+
+
+# Docs
+README.md
+TODO.md
+

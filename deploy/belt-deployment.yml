@@ -4,6 +4,8 @@ metadata:
   name: belt-monitor-deployment
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: belt-monitor
@@ -30,6 +32,8 @@ spec:
               mountPath: /app/logs
             - name: model-volume
               mountPath: /app/models
+            - name: config-volume
+              mountPath: /app/configs
 
 
       volumes:
@@ -45,5 +49,10 @@ spec:
           hostPath:
             path: /mnt/app/models
             type: DirectoryOrCreate
+        - name: config-volume
+          hostPath:
+            path: /mnt/app/configs
+            type: DirectoryOrCreate
+
     
 
