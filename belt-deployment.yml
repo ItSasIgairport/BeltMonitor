@@ -28,16 +28,22 @@ spec:
               mountPath: /app/event_recordings
             - name: logs-volume
               mountPath: /app/logs
+            - name: model-volume
+              mountPath: /app/models
 
 
       volumes:
         - name: event-recordings-volume
           hostPath:
-            path: /mnt/event_recordings
+            path: /mnt/app/event_recordings
             type: DirectoryOrCreate
         - name: logs-volume
           hostPath:
-            path: /mnt/logs
+            path: /mnt/app/logs
+            type: DirectoryOrCreate
+        - name: model-volume
+          hostPath:
+            path: /mnt/app/models
             type: DirectoryOrCreate
     
 
